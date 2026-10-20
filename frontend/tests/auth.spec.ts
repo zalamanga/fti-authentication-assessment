@@ -96,6 +96,13 @@ test("register, session eviction, role guard, admin force logout, and responsive
       path: testInfo.outputPath("profile-desktop.png"),
       fullPage: true,
     });
+    await first.setViewportSize({ width: 360, height: 900 });
+    for (const theme of ["dark", "light"]) {
+      await first.getByRole("button", { name: theme === "dark" ? "Tema gelap" : "Tema terang" }).click();
+      expect(await first.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+      await first.screenshot({ path: testInfo.outputPath(`profile-mobile-${theme}.png`), fullPage: true });
+    }
+    await first.setViewportSize({ width: 1280, height: 900 });
     await expect(
       first.getByRole("link", { name: "Pengguna", exact: true }),
     ).toHaveCount(0);
@@ -239,4 +246,36 @@ test("network failure shows recoverable state", async ({ page }) => {
   await page.unroute("**/api/auth/me");
   await page.getByRole("button", { name: "Coba hubungkan kembali" }).click();
   await expect(page).toHaveURL(/\/login$/);
+});
+
+test("admin pagination and data error recovery with explicit test fixtures", async ({ page }) => {
+  const fixtureAdmin = { id: "fixture_admin", username: "fixture_admin", email: "fixture_admin@example.test", role: "admin", created_at: "2026-01-01T00:00:00Z" };
+  const fixtures = Array.from({ length: 21 }, (_, index) => ({
+    id: `fixture_${index + 1}`, username: `fixture_user_${index + 1}`,
+    email: `fixture_${index + 1}@example.test`, role: "user",
+    created_at: "2026-01-01T00:00:00Z", active_sessions: 0,
+  }));
+  let failData = false;
+  await page.route("**/api/auth/me", route => route.fulfill({ json: { user: fixtureAdmin } }));
+  await page.route(/\/api\/admin\/users\?/, route => {
+    if (failData) return route.fulfill({ status: 503, json: { error: "Fixture: data sementara gagal dimuat", code: "UNAVAILABLE" } });
+    const current = Number(new URL(route.request().url()).searchParams.get("page"));
+    return route.fulfill({ json: { users: fixtures.slice((current - 1) * 20, current * 20), total: fixtures.length, page: current, page_size: 20 } });
+  });
+  await page.goto("/admin/users");
+  await expect(page.getByText("Halaman 1 dari 2", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sebelumnya", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Berikutnya", exact: true }).click();
+  await expect(page.getByText("Halaman 2 dari 2", { exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: /fixture_user_21/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Berikutnya", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Sebelumnya", exact: true }).click();
+  await expect(page.getByText("Halaman 1 dari 2", { exact: true })).toBeVisible();
+  failData = true;
+  await page.getByRole("button", { name: "Muat ulang", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("data sementara gagal dimuat");
+  failData = false;
+  await page.getByRole("button", { name: "Muat ulang", exact: true }).click();
+  await expect(page.getByText("Halaman 1 dari 2", { exact: true })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
 });
