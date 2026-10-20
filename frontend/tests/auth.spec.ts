@@ -267,7 +267,7 @@ test("admin pagination and data error recovery with explicit test fixtures", asy
   await expect(page.getByRole("button", { name: "Sebelumnya", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Berikutnya", exact: true }).click();
   await expect(page.getByText("Halaman 2 dari 2", { exact: true })).toBeVisible();
-  await expect(page.getByRole("cell", { name: /fixture_user_21/ })).toBeVisible();
+  await expect(page.getByRole("cell", { name: /^fixture_user_21 fixture_21@/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "Berikutnya", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Sebelumnya", exact: true }).click();
   await expect(page.getByText("Halaman 1 dari 2", { exact: true })).toBeVisible();
