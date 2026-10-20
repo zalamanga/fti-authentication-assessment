@@ -1,0 +1,4 @@
+*_test.go
+*.exe
+coverage.*
+.env
