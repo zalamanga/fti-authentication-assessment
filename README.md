@@ -89,6 +89,8 @@ Login dan pendaftaran mengembalikan objek `user` dengan field `id`, `email`, `us
 
 Workflow [CI](.github/workflows/ci.yml) menjalankan pemeriksaan format Go, `go vet`, unit test dan integration test PostgreSQL dengan race detector, pemindaian kerentanan Go, build frontend, serta validasi dan startup seluruh layanan Compose. Smoke check memeriksa frontend, backend, dan proxy API pada port yang dipublikasikan; Playwright menguji alur authentication langsung pada stack Docker. Workflow berjalan otomatis setelah repositori di-push ke GitHub.
 
+[Hasil CI](https://github.com/zalamanga/fti-authentication-assessment/actions/runs/39375132218) untuk source akhir lulus seluruh job. [Laporan verifikasi](docs/verification.md) memuat bukti uji sesi, pengoperasian kontrol, responsivitas, serta pemeriksaan antarmuka.
+
 Untuk menjalankan pemeriksaan secara lokal dengan Go 1.27 dan Node.js 22.12 atau lebih baru:
 
 ```bash
